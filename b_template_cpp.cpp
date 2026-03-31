@@ -1,28 +1,32 @@
-/*
- * Callbacks in C++ using function templates and lambdas.
- * The "apply" function template accepts any callable (function, lambda,
- * functor) and invokes it for every element of the container.
- */
-#include <iostream>
-#include <vector>
+#include <cstddef>
+#include <cstdint>
 
-template<typename T, typename Func>
-void for_each_element(const std::vector<T>& arr, Func f)
-{
-    for (const auto& x : arr) {
-        f(x);
+template <class F>
+void apply_transform(int* out, const int* in, std::size_t n, F op) {
+    for (std::size_t i = 0; i < n; ++i) {
+        out[i] = op(in[i]);
     }
 }
 
-int main()
-{
-    std::vector<int> arr = {1, 2, 3, 4, 5};
+volatile int sink;
 
-    std::cout << "Values:\n";
-    for_each_element(arr, [](int x) { std::cout << x << '\n'; });
+int run_apply(const int* in, std::size_t n) {
+    int out[64];
+    if (n > 64) n = 64;
 
-    std::cout << "Squares:\n";
-    for_each_element(arr, [](int x) { std::cout << x << "^2 = " << x * x << '\n'; });
+    apply_transform(out, in, n, [](int x) {
+        return x * 3 + 1;
+    });
 
-    return 0;
+    int sum = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+        sum += out[i];
+    }
+    sink = sum;
+    return sum;
+}
+
+int main() {
+    const int in[8] = {1,2,3,4,5,6,7,8};
+    return run_apply(in, 8);
 }

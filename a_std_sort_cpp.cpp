@@ -1,20 +1,36 @@
-/*
- * Sorting an integer vector in C++ using std::sort().
- * The comparator can be a lambda or left out for the default operator<.
- */
 #include <algorithm>
-#include <iostream>
-#include <vector>
+#include <array>
+#include <cstdint>
+#include <cstddef>
 
-int main()
-{
-    std::vector<int> arr = {5, 3, 1, 4, 2};
+struct Order {
+    std::uint64_t ts;
+    std::uint32_t id;
+    std::uint32_t qty;
+};
 
-    std::sort(arr.begin(), arr.end());
+volatile std::uint64_t sink;
 
-    for (int x : arr) {
-        std::cout << x << ' ';
+std::uint64_t sort_orders(Order* data, std::size_t n) {
+    std::sort(data, data + n, [](const Order& lhs, const Order& rhs) {
+        if (lhs.ts != rhs.ts) return lhs.ts < rhs.ts;
+        return lhs.id < rhs.id;
+    });
+
+    std::uint64_t sum = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+        sum += data[i].ts;
+        sum += data[i].id;
+        sum += data[i].qty;
     }
-    std::cout << '\n';
-    return 0;
+    sink = sum;
+    return sum;
+}
+
+int main() {
+    std::array<Order, 8> data{{
+        {9, 4, 10}, {3, 2, 11}, {7, 1, 12}, {3, 1, 13},
+        {8, 8, 14}, {1, 9, 15}, {5, 7, 16}, {5, 3, 17}
+    }};
+    return static_cast<int>(sort_orders(data.data(), data.size()));
 }
